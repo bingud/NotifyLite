@@ -2,18 +2,21 @@
 
 Windows tray app that reads system notifications and keeps a history. Optional custom toast UI.
 
-Fork of [AfaqAhmad0/NotifyLite](https://github.com/AfaqAhmad0/NotifyLite).
+## What is different in this Fork
 
-**This fork:**
+This is a fork of [AfaqAhmad0/NotifyLite](https://github.com/AfaqAhmad0/NotifyLite).
 
-- Left-click the tray icon for history (click away to close)
-- History is recorded when a notification arrives, and kept after dismiss
-- Native Windows banners by default; custom toasts optional
-- Floating history icon off by default
-- Original apps still show in Win+N (does not rewrite them as NotifyLite)
-- Flatter dark UI, 16px minimum text
+What is different:
+
+- Click tray icon to show notification history
+- Cleaner UI design (flat dark mode, bigger text)
+- Toggle to hide the floating notifications button
+- Toggle to use native windows notifications (only use for notification history)
+- Retain notification in history when dismissed
 
 Windows 10/11 (64-bit), .NET 8.
+
+---
 
 ## Install
 
