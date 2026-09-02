@@ -19,6 +19,7 @@ $AssetsDir = Join-Path $ProjectRoot "NotifyLite\Assets"
 $PublishDir = Join-Path $ProjectRoot "publish"
 $StagingDir = Join-Path $ProjectRoot "msix-staging"
 $OutputMsix = Join-Path $ProjectRoot "NotifyLite.msix"
+$DistDir = Join-Path $ProjectRoot "Dist"
 $CertSubject = "CN=NotifyLiteDev"
 
 # Locate Windows SDK tools
@@ -99,6 +100,12 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 Write-Host "  Signed with cert: $($cert.Thumbprint)" -ForegroundColor Green
+
+# Copy installer payload so Dist\Install.bat works from a source zip
+if (-not (Test-Path $DistDir)) { New-Item -ItemType Directory -Path $DistDir -Force | Out-Null }
+Copy-Item $OutputMsix (Join-Path $DistDir "NotifyLite.msix") -Force
+Export-Certificate -Cert $cert -FilePath (Join-Path $DistDir "NotifyLite.cer") -Force | Out-Null
+Write-Host "  Copied installer files to Dist\" -ForegroundColor Green
 
 # Trust the certificate in LocalMachine\TrustedPeople (required for MSIX install)
 $lmCert = Get-ChildItem Cert:\LocalMachine\TrustedPeople -ErrorAction SilentlyContinue | Where-Object { $_.Subject -eq $CertSubject }

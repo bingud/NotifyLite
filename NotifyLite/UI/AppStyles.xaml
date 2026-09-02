@@ -3,7 +3,7 @@
 
     <!-- ScrollBar Thumb -->
     <Style x:Key="ScrollThumb" TargetType="{x:Type Thumb}">
-        <Setter Property="Background" Value="#8B7CF6"/>
+        <Setter Property="Background" Value="#5C5C5C"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Thumb}">
@@ -13,7 +13,7 @@
         </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="#A093FA"/>
+                <Setter Property="Background" Value="#808080"/>
             </Trigger>
         </Style.Triggers>
     </Style>
@@ -67,30 +67,30 @@
     <Style x:Key="FancyToggle" TargetType="ToggleButton">
         <Setter Property="Width" Value="40"/>
         <Setter Property="Height" Value="22"/>
-        <Setter Property="Background" Value="#33334D"/>
+        <Setter Property="Background" Value="#333333"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToggleButton">
-                    <Border x:Name="Border" CornerRadius="11" Background="{TemplateBinding Background}" BorderThickness="1" BorderBrush="#22223A">
-                        <Ellipse x:Name="Knob" Fill="#E0E0F0" Width="16" Height="16" HorizontalAlignment="Left" Margin="3,0,0,0"/>
+                    <Border x:Name="Border" CornerRadius="11" Background="{TemplateBinding Background}" BorderThickness="1" BorderBrush="#3D3D3D">
+                        <Ellipse x:Name="Knob" Fill="#FFFFFF" Width="16" Height="16" HorizontalAlignment="Left" Margin="3,0,0,0"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Border" Property="Background" Value="#6C63FF"/>
-                            <Setter TargetName="Border" Property="BorderBrush" Value="#8B7CF6"/>
+                            <Setter TargetName="Border" Property="Background" Value="#808080"/>
+                            <Setter TargetName="Border" Property="BorderBrush" Value="#999999"/>
                             <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right"/>
                             <Setter TargetName="Knob" Property="Margin" Value="0,0,3,0"/>
                             <Setter TargetName="Knob" Property="Fill" Value="#FFFFFF"/>
                         </Trigger>
                         <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True">
-                            <Setter TargetName="Border" Property="Background" Value="#444466"/>
+                            <Setter TargetName="Border" Property="Background" Value="#3A3A3A"/>
                         </DataTrigger>
                         <MultiDataTrigger>
                             <MultiDataTrigger.Conditions>
                                 <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource Self}}" Value="True"/>
                                 <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
                             </MultiDataTrigger.Conditions>
-                            <Setter TargetName="Border" Property="Background" Value="#8B7CF6"/>
+                            <Setter TargetName="Border" Property="Background" Value="#999999"/>
                         </MultiDataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -100,9 +100,10 @@
 
     <!-- ComboBox Modern Style -->
     <Style TargetType="ComboBox">
-        <Setter Property="Background" Value="#2A2A3E"/>
-        <Setter Property="Foreground" Value="#E0E0F0"/>
-        <Setter Property="BorderBrush" Value="#3A3A4E"/>
+        <Setter Property="Background" Value="#333333"/>
+        <Setter Property="Foreground" Value="#FFFFFF"/>
+        <Setter Property="BorderBrush" Value="#3D3D3D"/>
+        <Setter Property="FontSize" Value="16"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="8,4"/>
         <Setter Property="Template">
@@ -112,21 +113,21 @@
                         <ToggleButton x:Name="ToggleButton" Grid.Column="2" Focusable="false" IsChecked="{Binding Path=IsDropDownOpen,Mode=TwoWay,RelativeSource={RelativeSource TemplatedParent}}" >
                             <ToggleButton.Template>
                                 <ControlTemplate>
-                                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
-                                        <Path x:Name="Arrow" Fill="#E0E0F0" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" Data="M 0 0 L 4 4 L 8 0 Z"/>
+                                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="2">
+                                        <Path x:Name="Arrow" Fill="#FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" Data="M 0 0 L 4 4 L 8 0 Z"/>
                                     </Border>
                                 </ControlTemplate>
                             </ToggleButton.Template>
                             <ToggleButton.Background>
-                                <SolidColorBrush Color="#2A2A3E"/>
+                                <SolidColorBrush Color="#333333"/>
                             </ToggleButton.Background>
                             <ToggleButton.BorderBrush>
-                                <SolidColorBrush Color="#3A3A4E"/>
+                                <SolidColorBrush Color="#3D3D3D"/>
                             </ToggleButton.BorderBrush>
                         </ToggleButton>
                         <ContentPresenter x:Name="ContentSite" IsHitTestVisible="False" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" Margin="8,4,20,4" VerticalAlignment="Center" HorizontalAlignment="Left" />
                         <Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
-                            <Border x:Name="DropDownBorder" Background="#1E1E2E" BorderThickness="1" BorderBrush="#3A3A4E" CornerRadius="4" Margin="0,4,0,0">
+                            <Border x:Name="DropDownBorder" Background="#2B2B2B" BorderThickness="1" BorderBrush="#3D3D3D" CornerRadius="2" Margin="0,4,0,0">
                                 <ScrollViewer Margin="1" SnapsToDevicePixels="True">
                                     <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
                                 </ScrollViewer>
@@ -141,8 +142,8 @@
                             <Setter Property="ScrollViewer.CanContentScroll" Value="false"/>
                         </Trigger>
                         <Trigger SourceName="ToggleButton" Property="IsMouseOver" Value="true">
-                            <Setter TargetName="ToggleButton" Property="Background" Value="#33334D" />
-                            <Setter TargetName="ToggleButton" Property="BorderBrush" Value="#444466" />
+                            <Setter TargetName="ToggleButton" Property="Background" Value="#3A3A3A" />
+                            <Setter TargetName="ToggleButton" Property="BorderBrush" Value="#4A4A4A" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -151,13 +152,13 @@
     </Style>
 
     <Style TargetType="ComboBoxItem">
-        <Setter Property="Foreground" Value="#E0E0F0"/>
+        <Setter Property="Foreground" Value="#FFFFFF"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Padding" Value="8,6"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBoxItem">
-                    <Border Background="{TemplateBinding Background}" CornerRadius="3" Margin="2,1">
+                    <Border Background="{TemplateBinding Background}" CornerRadius="2" Margin="2,1">
                         <ContentPresenter Margin="{TemplateBinding Padding}" />
                     </Border>
                 </ControlTemplate>
@@ -165,12 +166,12 @@
         </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="#6C63FF"/>
+                <Setter Property="Background" Value="#3D3D3D"/>
                 <Setter Property="Foreground" Value="#FFFFFF"/>
             </Trigger>
             <Trigger Property="IsSelected" Value="True">
-                <Setter Property="Background" Value="#444466"/>
-                <Setter Property="Foreground" Value="#E0E0F0"/>
+                <Setter Property="Background" Value="#333333"/>
+                <Setter Property="Foreground" Value="#FFFFFF"/>
             </Trigger>
         </Style.Triggers>
     </Style>

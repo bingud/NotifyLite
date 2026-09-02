@@ -2,9 +2,12 @@ using NotifyLite.Helpers;
 using NotifyLite.Managers;
 using NotifyLite.Models;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 
 namespace NotifyLite.Windows;
@@ -24,25 +27,49 @@ public partial class HistoryWidget : Window
 
     private readonly NotificationHistoryManager _historyManager;
     private readonly ConfigManager _configManager;
-    private readonly Window _ownerIcon;
+    private readonly Window? _ownerIcon;
+    private readonly EventHandler _countChangedHandler;
+    private Native.LowLevelMouseProc? _mouseProc;
+    private IntPtr _mouseHook;
+    private bool _armed;
     private bool _isClosing;
 
-    public HistoryWidget(NotificationHistoryManager historyManager, ConfigManager configManager, Window ownerIcon)
+    public HistoryWidget(NotificationHistoryManager historyManager, ConfigManager configManager, Window? ownerIcon = null)
     {
         InitializeComponent();
         _historyManager = historyManager;
         _configManager = configManager;
         _ownerIcon = ownerIcon;
 
-        _historyManager.CountChanged += (_, _) => Dispatcher.BeginInvoke(RefreshList);
+        _countChangedHandler = (_, _) => Dispatcher.BeginInvoke(RefreshList);
+        _historyManager.CountChanged += _countChangedHandler;
         SizeChanged += Window_SizeChanged;
-
-        _historyManager.CountChanged += (_, _) => Dispatcher.BeginInvoke(RefreshList);
+        Closed += (_, _) =>
+        {
+            _historyManager.CountChanged -= _countChangedHandler;
+            UnhookMouse();
+        };
     }
 
-    private void Window_Loaded(object sender, RoutedEventArgs e)
+    private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
         RefreshList();
+        InstallMouseHook();
+
+        // Tray clicks steal focus immediately. Re-take foreground after that
+        // so later click-away can raise Deactivated.
+        try
+        {
+            await Task.Delay(80);
+            if (_isClosing) return;
+            Activate();
+            Native.SetForegroundWindow(new WindowInteropHelper(this).Handle);
+            _armed = true;
+        }
+        catch
+        {
+            _armed = true;
+        }
     }
 
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -88,8 +115,8 @@ public partial class HistoryWidget : Window
     {
         var card = new Border
         {
-            Background = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString("#252538")),
-            CornerRadius = new CornerRadius(8),
+            Background = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString("#2B2B2B")),
+            CornerRadius = new CornerRadius(2),
             Margin = new Thickness(8, 3, 8, 3),
             Padding = new Thickness(10, 8, 8, 8),
             Cursor = Cursors.Hand,
@@ -97,9 +124,9 @@ public partial class HistoryWidget : Window
         };
 
         card.MouseEnter += (s, _) =>
-            ((Border)s!).Background = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString("#2E2E44"));
+            ((Border)s!).Background = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString("#333333"));
         card.MouseLeave += (s, _) =>
-            ((Border)s!).Background = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString("#252538"));
+            ((Border)s!).Background = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString("#2B2B2B"));
         card.MouseLeftButtonUp += Card_Click;
 
         var grid = new Grid();
@@ -115,8 +142,8 @@ public partial class HistoryWidget : Window
         var appName = new TextBlock
         {
             Text = notif.AppName ?? "Unknown",
-            FontSize = 10,
-            Foreground = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString("#6C63FF")),
+            FontSize = 16,
+            Foreground = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString("#999999")),
             FontWeight = FontWeights.SemiBold
         };
         DockPanel.SetDock(appName, Dock.Left);
@@ -125,8 +152,8 @@ public partial class HistoryWidget : Window
         var time = new TextBlock
         {
             Text = FormatTime(notif.Timestamp),
-            FontSize = 9,
-            Foreground = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString("#555")),
+            FontSize = 16,
+            Foreground = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString("#888888")),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Right
         };
         DockPanel.SetDock(time, Dock.Right);
@@ -140,11 +167,11 @@ public partial class HistoryWidget : Window
             content.Children.Add(new TextBlock
             {
                 Text = notif.Title,
-                FontSize = 11,
+                FontSize = 16,
                 FontWeight = FontWeights.SemiBold,
-                Foreground = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString("#E0E0F0")),
+                Foreground = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString("#FFFFFF")),
                 TextTrimming = TextTrimming.CharacterEllipsis,
-                MaxWidth = 230
+                MaxWidth = 300
             });
         }
 
@@ -154,11 +181,11 @@ public partial class HistoryWidget : Window
             content.Children.Add(new TextBlock
             {
                 Text = notif.Body,
-                FontSize = 10,
-                Foreground = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString("#9999AA")),
+                FontSize = 16,
+                Foreground = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString("#CCCCCC")),
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 TextWrapping = TextWrapping.NoWrap,
-                MaxWidth = 230
+                MaxWidth = 300
             });
         }
 
@@ -170,7 +197,7 @@ public partial class HistoryWidget : Window
         {
             Width = 20,
             Height = 20,
-            CornerRadius = new CornerRadius(10),
+            CornerRadius = new CornerRadius(2),
             Background = Brushes.Transparent,
             Cursor = Cursors.Hand,
             VerticalAlignment = VerticalAlignment.Top,
@@ -180,13 +207,13 @@ public partial class HistoryWidget : Window
         closeBtn.Child = new TextBlock
         {
             Text = "\u2715",
-            FontSize = 10,
+            FontSize = 16,
             Foreground = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString("#666")),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
         };
         closeBtn.MouseEnter += (s, _) =>
-            ((Border)s!).Background = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString("#3A3A4E"));
+            ((Border)s!).Background = new SolidColorBrush((Color)System.Windows.Media.ColorConverter.ConvertFromString("#3D3D3D"));
         closeBtn.MouseLeave += (s, _) =>
             ((Border)s!).Background = Brushes.Transparent;
         closeBtn.MouseLeftButtonUp += CloseItem_Click;
@@ -205,19 +232,8 @@ public partial class HistoryWidget : Window
             // Try to launch the app
             if (!string.IsNullOrEmpty(notif.AppUserModelId))
             {
-                try
-                {
-                    var aumid = notif.AppUserModelId;
-                    var process = new Process();
-                    process.StartInfo.FileName = "explorer.exe";
-                    process.StartInfo.Arguments = $"shell:AppsFolder\\{aumid}";
-                    process.StartInfo.UseShellExecute = false;
-                    process.Start();
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[HistoryWidget] Launch failed: {ex.Message}");
-                }
+                try { AppLauncher.TryLaunch(notif.AppUserModelId); }
+                catch (Exception ex) { Debug.WriteLine($"[HistoryWidget] Launch failed: {ex.Message}"); }
             }
         }
     }
@@ -247,11 +263,53 @@ public partial class HistoryWidget : Window
 
     private void Window_Deactivated(object sender, EventArgs e)
     {
-        if (!_isClosing)
+        if (_armed)
+            TryClose();
+    }
+
+    private void TryClose()
+    {
+        if (_isClosing) return;
+        _isClosing = true;
+        UnhookMouse();
+        Close();
+    }
+
+    private void InstallMouseHook()
+    {
+        if (_mouseHook != IntPtr.Zero) return;
+        _mouseProc = OnMouse;
+        var module = Native.GetModuleHandle(null);
+        _mouseHook = Native.SetWindowsHookEx(Native.WH_MOUSE_LL, _mouseProc, module, 0);
+    }
+
+    private void UnhookMouse()
+    {
+        if (_mouseHook == IntPtr.Zero) return;
+        Native.UnhookWindowsHookEx(_mouseHook);
+        _mouseHook = IntPtr.Zero;
+        _mouseProc = null;
+    }
+
+    private IntPtr OnMouse(int nCode, IntPtr wParam, IntPtr lParam)
+    {
+        if (nCode >= 0 &&
+            (wParam == Native.WM_LBUTTONDOWN || wParam == Native.WM_RBUTTONDOWN || wParam == Native.WM_MBUTTONDOWN))
         {
-            _isClosing = true;
-            Close();
+            var data = Marshal.PtrToStructure<Native.MsllHook>(lParam);
+            var x = data.pt.X;
+            var y = data.pt.Y;
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (_isClosing) return;
+                if (Native.IsTaskbarPoint(x, y)) return;
+                Native.GetWindowRect(new WindowInteropHelper(this).Handle, out var rect);
+                if (x < rect.Left || x > rect.Right || y < rect.Top || y > rect.Bottom)
+                    TryClose();
+            });
         }
+
+        return Native.CallNextHookEx(_mouseHook, nCode, wParam, lParam);
     }
 
     private static string FormatTime(DateTime timestamp)
@@ -261,5 +319,77 @@ public partial class HistoryWidget : Window
         if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
         if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h ago";
         return timestamp.ToString("MMM d");
+    }
+
+    private static class Native
+    {
+        public const int WH_MOUSE_LL = 14;
+        public static readonly IntPtr WM_LBUTTONDOWN = 0x0201;
+        public static readonly IntPtr WM_RBUTTONDOWN = 0x0204;
+        public static readonly IntPtr WM_MBUTTONDOWN = 0x0207;
+
+        public delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct Point
+        {
+            public int X;
+            public int Y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MsllHook
+        {
+            public Point pt;
+            public int mouseData;
+            public int flags;
+            public int time;
+            public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct Rect
+        {
+            public int Left, Top, Right, Bottom;
+        }
+
+        public static bool IsTaskbarPoint(int x, int y)
+        {
+            var hwnd = WindowFromPoint(new Point { X = x, Y = y });
+            if (hwnd == IntPtr.Zero) return false;
+            var root = GetAncestor(hwnd, 2);
+            if (root != IntPtr.Zero) hwnd = root;
+
+            var name = new StringBuilder(256);
+            GetClassName(hwnd, name, name.Capacity);
+            return name.ToString() is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd" or "NotifyIconOverflowWindow";
+        }
+
+        [DllImport("user32.dll")]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern bool GetWindowRect(IntPtr hWnd, out Rect lpRect);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr WindowFromPoint(Point pt);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetAncestor(IntPtr hWnd, uint gaFlags);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
+        public static extern IntPtr GetModuleHandle(string? lpModuleName);
     }
 }

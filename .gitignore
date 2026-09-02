@@ -7,15 +7,15 @@ CONTEXT.md
 publish/
 msix-staging/
 
-# MSIX build artifacts
+# MSIX build artifacts (root copies + private keys)
 *.msix
 *.cer
 *.pfx
+!Dist/NotifyLite.msix
+!Dist/NotifyLite.cer
 
 # Distribution ZIP
 *.zip
-Dist/NotifyLite.msix
-Dist/NotifyLite.cer
 
 # IDE / Editor
 .vs/

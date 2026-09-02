@@ -35,6 +35,8 @@ public class ConfigManager
             {
                 var json = File.ReadAllText(ConfigPath);
                 Config = JsonSerializer.Deserialize<AppConfig>(json, JsonOptions) ?? new AppConfig();
+                if (Config.TitleFontSize < 16) Config.TitleFontSize = 16;
+                if (Config.BodyFontSize < 16) Config.BodyFontSize = 16;
             }
             else
             {
@@ -73,19 +75,19 @@ public class AppConfig
     // --- Appearance ---
     public string Theme { get; set; } = "Dark";
     public string FontFamily { get; set; } = "Segoe UI";
-    public double TitleFontSize { get; set; } = 12;
-    public double BodyFontSize { get; set; } = 11;
+    public double TitleFontSize { get; set; } = 16;
+    public double BodyFontSize { get; set; } = 16;
 
     // --- Colors ---
-    public string AccentColor { get; set; } = "#6C63FF";
-    public string TitleColor { get; set; } = "#E0E0F0";
-    public string BodyColor { get; set; } = "#AAAACC";
-    public string CardColor { get; set; } = "#1E1E2E";
-    public string CardBorderColor { get; set; } = "#2A2A3E";
+    public string AccentColor { get; set; } = "#808080";
+    public string TitleColor { get; set; } = "#FFFFFF";
+    public string BodyColor { get; set; } = "#CCCCCC";
+    public string CardColor { get; set; } = "#2B2B2B";
+    public string CardBorderColor { get; set; } = "#3D3D3D";
 
     // --- Card ---
     public double ToastWidth { get; set; } = 300;
-    public double CornerRadius { get; set; } = 8;
+    public double CornerRadius { get; set; } = 2;
     public double CardOpacity { get; set; } = 1.0;
     public double TextOpacity { get; set; } = 1.0;
 
@@ -99,7 +101,7 @@ public class AppConfig
     public double PositionY { get; set; } = -1;
 
     // --- Floating Icon ---
-    public bool ShowFloatingIcon { get; set; } = true;
+    public bool ShowFloatingIcon { get; set; } = false;
     /// <summary>Floating icon X/Y screen position. -1 = auto (center-right).</summary>
     public double FloatingIconX { get; set; } = -1;
     public double FloatingIconY { get; set; } = -1;
@@ -114,6 +116,11 @@ public class AppConfig
     // --- System ---
     public bool AutoStart { get; set; } = false;
     public bool Enabled { get; set; } = true;
+    /// <summary>
+    /// When true, native Windows banners are suppressed and custom toast cards are shown.
+    /// When false, native banners stay; NotifyLite still records history.
+    /// </summary>
+    public bool ShowCustomToasts { get; set; } = false;
 
     // --- Tracked apps (auto-populated as notifications arrive) ---
     public List<string> KnownApps { get; set; } = new();

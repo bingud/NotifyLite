@@ -109,17 +109,8 @@ public class NotificationListener : IDisposable
                     var data = ExtractNotificationData(notification);
                     if (data != null)
                     {
-                        // Try to remove from Action Center
-                        try
-                        {
-                            sender.RemoveNotification(notification.Id);
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine($"[NotificationListener] Failed to remove: {ex.Message}");
-                        }
-
-                        // Raise event (handled by App.xaml.cs on UI thread via Dispatcher)
+                        // Leave the original in Action Center so Win+N still shows
+                        // the source app, not a NotifyLite copy.
                         NotificationReceived?.Invoke(this, data);
                     }
                 }

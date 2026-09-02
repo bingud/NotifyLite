@@ -24,6 +24,9 @@ public class TrayManager : IDisposable
     /// <summary>Fired when the user clicks Exit.</summary>
     public event EventHandler? ExitRequested;
 
+    /// <summary>Fired when the user wants notification history (tray left-click or menu).</summary>
+    public event EventHandler? HistoryRequested;
+
     public TrayManager(ConfigManager configManager)
     {
         _configManager = configManager;
@@ -33,6 +36,7 @@ public class TrayManager : IDisposable
     public void Initialize()
     {
         var contextMenu = CreateContextMenu();
+        contextMenu.FontSize = 16;
 
         _trayIcon = new TaskbarIcon
         {
@@ -40,6 +44,7 @@ public class TrayManager : IDisposable
             ToolTipText = "NotifyLite — Custom Notifications",
             ContextMenu = contextMenu
         };
+        _trayIcon.TrayLeftMouseUp += (_, _) => HistoryRequested?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Build the right-click context menu.</summary>
@@ -111,6 +116,27 @@ public class TrayManager : IDisposable
 
         menu.Items.Add(new Separator());
 
+        var historyItem = new MenuItem { Header = "Notification history" };
+        historyItem.Click += (_, _) => HistoryRequested?.Invoke(this, EventArgs.Empty);
+        menu.Items.Add(historyItem);
+
+        var customToastItem = new MenuItem
+        {
+            Header = _configManager.Config.ShowCustomToasts ? "Custom toasts: ON" : "Custom toasts: OFF (native)",
+            Tag = "customToasts"
+        };
+        customToastItem.Click += (s, _) =>
+        {
+            _configManager.Config.ShowCustomToasts = !_configManager.Config.ShowCustomToasts;
+            ((MenuItem)s!).Header = _configManager.Config.ShowCustomToasts
+                ? "Custom toasts: ON"
+                : "Custom toasts: OFF (native)";
+            _configManager.Save();
+        };
+        menu.Items.Add(customToastItem);
+
+        menu.Items.Add(new Separator());
+
         // Settings
         var settingsItem = new MenuItem { Header = "⚙️ Settings" };
         settingsItem.Click += (_, _) =>
@@ -139,23 +165,19 @@ public class TrayManager : IDisposable
 
     /// <summary>
     /// Create a simple programmatic icon (avoids dependency on an .ico file).
-    /// Draws an "N" on a purple gradient background.
+    /// Draws an "N" on a dark gray square.
     /// </summary>
     private static Icon CreateDefaultIcon()
     {
         using var bitmap = new Bitmap(32, 32);
         using var g = Graphics.FromImage(bitmap);
 
-        // Purple gradient background
-        using var brush = new System.Drawing.Drawing2D.LinearGradientBrush(
-            new Rectangle(0, 0, 32, 32),
-            ColorTranslator.FromHtml("#6C63FF"),
-            ColorTranslator.FromHtml("#8B5CF6"),
-            System.Drawing.Drawing2D.LinearGradientMode.ForwardDiagonal);
-
-        // Rounded rectangle background
+        // Dark gray square background
+        using var brush = new SolidBrush(ColorTranslator.FromHtml("#2B2B2B"));
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        g.FillEllipse(brush, 1, 1, 30, 30);
+        g.FillRectangle(brush, 2, 2, 28, 28);
+        using var borderPen = new Pen(ColorTranslator.FromHtml("#3D3D3D"), 1);
+        g.DrawRectangle(borderPen, 2, 2, 28, 28);
 
         // Draw "N" letter
         using var font = new Font("Segoe UI", 16, System.Drawing.FontStyle.Bold);

@@ -50,24 +50,22 @@
     <!-- The toast card -->
     <Border x:Name="CardBorder"
             Margin="8"
-            CornerRadius="8"
+            CornerRadius="2"
             Opacity="0"
             Cursor="Hand">
         <Border.RenderTransform>
             <TranslateTransform x:Name="RootTransform" X="320"/>
         </Border.RenderTransform>
 
-        <!-- Drop shadow effect -->
         <Border.Effect>
-            <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.35" Color="#000000"/>
+            <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.3" Color="#000000"/>
         </Border.Effect>
 
         <Grid>
-            <!-- Background with theme-aware colors set in code-behind -->
             <Border x:Name="BackgroundBorder"
-                    CornerRadius="8"
-                    Background="#1E1E2E"
-                    BorderBrush="#2A2A3E"
+                    CornerRadius="2"
+                    Background="#2B2B2B"
+                    BorderBrush="#3D3D3D"
                     BorderThickness="1"/>
 
             <StackPanel Margin="12,10,12,10">
@@ -75,9 +73,9 @@
                 <DockPanel Margin="0,0,0,4">
                     <TextBlock x:Name="AppNameText"
                                Text="App Name"
-                               FontSize="10"
+                               FontSize="16"
                                FontWeight="SemiBold"
-                               Foreground="#8888AA"
+                               Foreground="#999999"
                                TextTrimming="CharacterEllipsis"
                                DockPanel.Dock="Left"
                                MaxWidth="160"/>
@@ -85,22 +83,22 @@
                     <!-- Close button -->
                     <Border x:Name="CloseBtn"
                             DockPanel.Dock="Right"
-                            Width="18" Height="18"
-                            CornerRadius="9"
+                            Width="22" Height="22"
+                            CornerRadius="2"
                             Background="Transparent"
                             Cursor="Hand"
                             Margin="4,0,0,0"
                             MouseLeftButtonDown="CloseBtn_Click"
                             MouseEnter="CloseBtn_MouseEnter"
                             MouseLeave="CloseBtn_MouseLeave">
-                        <TextBlock Text="✕" FontSize="10" Foreground="#666688"
+                        <TextBlock Text="✕" FontSize="16" Foreground="#888888"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
 
                     <TextBlock x:Name="TimestampText"
                                Text="just now"
-                               FontSize="9"
-                               Foreground="#666688"
+                               FontSize="16"
+                               Foreground="#888888"
                                HorizontalAlignment="Right"
                                DockPanel.Dock="Right"/>
                 </DockPanel>
@@ -108,30 +106,30 @@
                 <!-- Title -->
                 <TextBlock x:Name="TitleText"
                            Text="Notification Title"
-                           FontSize="12"
+                           FontSize="16"
                            FontWeight="SemiBold"
-                           Foreground="#E0E0F0"
+                           Foreground="#FFFFFF"
                            TextWrapping="Wrap"
                            TextTrimming="CharacterEllipsis"
-                           MaxHeight="36"
+                           MaxHeight="48"
                            Margin="0,0,0,2"/>
 
                 <!-- Body -->
                 <TextBlock x:Name="BodyText"
                            Text="Notification body text goes here..."
-                           FontSize="11"
-                           Foreground="#AAAACC"
+                           FontSize="16"
+                           Foreground="#CCCCCC"
                            TextWrapping="Wrap"
                            TextTrimming="CharacterEllipsis"
-                           MaxHeight="48"/>
+                           MaxHeight="64"/>
 
                 <!-- Progress bar for auto-dismiss timer -->
-                <Border Margin="0,6,0,0" CornerRadius="1.5" Height="3"
-                        Background="#1A1A2A" ClipToBounds="True">
+                <Border Margin="0,6,0,0" CornerRadius="0" Height="2"
+                        Background="#1A1A1A" ClipToBounds="True">
                     <Border x:Name="TimerBar"
-                            CornerRadius="1.5"
-                            Height="3"
-                            Background="#6C63FF"
+                            CornerRadius="0"
+                            Height="2"
+                            Background="#808080"
                             HorizontalAlignment="Left"/>
                 </Border>
             </StackPanel>

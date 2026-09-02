@@ -1,7 +1,6 @@
 using NotifyLite.Helpers;
 using NotifyLite.Models;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -161,7 +160,7 @@ public partial class ToastWindow : Window
         _timerBarUpdater.Stop();
         if (!string.IsNullOrEmpty(_appUserModelId))
         {
-            try { LaunchAppByUserModelId(_appUserModelId); }
+            try { AppLauncher.TryLaunch(_appUserModelId); }
             catch (Exception ex) { Debug.WriteLine($"[Toast] Launch: {ex.Message}"); }
         }
         DismissWithAnimation();
@@ -184,27 +183,6 @@ public partial class ToastWindow : Window
     private void CloseBtn_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
     {
         CloseBtn.Background = System.Windows.Media.Brushes.Transparent;
-    }
-
-    private static void LaunchAppByUserModelId(string aumid)
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = $"shell:AppsFolder\\{aumid}",
-                UseShellExecute = true
-            });
-        }
-        catch
-        {
-            try
-            {
-                var aam = (IApplicationActivationManager)new ApplicationActivationManager();
-                aam.ActivateApplication(aumid, null, ActivateOptions.None, out _);
-            }
-            catch { }
-        }
     }
 
     private void UpdateTimerBar(object? sender, EventArgs e)
@@ -298,19 +276,4 @@ public partial class ToastWindow : Window
         ToastDismissed?.Invoke(this, EventArgs.Empty);
         Close();
     }
-
-    #region COM Interop
-    [ComImport, Guid("2e941141-7f97-4756-ba1d-9decde894a3d")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface IApplicationActivationManager
-    {
-        int ActivateApplication(
-            [MarshalAs(UnmanagedType.LPWStr)] string appUserModelId,
-            [MarshalAs(UnmanagedType.LPWStr)] string? arguments,
-            ActivateOptions options, out uint processId);
-    }
-    [ComImport, Guid("45BA127D-10A8-46EA-8AB7-56EA9078943C")]
-    private class ApplicationActivationManager { }
-    [Flags] private enum ActivateOptions { None = 0 }
-    #endregion
 }

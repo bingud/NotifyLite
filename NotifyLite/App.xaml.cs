@@ -3,6 +3,7 @@ using NotifyLite.Managers;
 using NotifyLite.Services;
 using NotifyLite.Windows;
 using System.Diagnostics;
+using System.Linq;
 using System.Windows;
 
 namespace NotifyLite;
@@ -62,13 +63,13 @@ public partial class App : Application
         // 2d. Wire history manager to toast manager
         _toastManager.SetHistoryManager(_historyManager, _floatingIcon);
 
-        // 3. Initialize Action Center integration
+        // 3. Native banners stay in Action Center; we only suppress popups
+        //    when custom toasts are enabled.
         ActionCenterManager.Initialize();
 
-        // 4. Initialize notification suppressor and suppress IMMEDIATELY
-        //    so native banners are blocked before any notification arrives
+        // 4. Initialize notification suppressor (applied immediately if custom toasts are on)
         _suppressor = new NotificationSuppressor();
-        _suppressor.Suppress();
+        ApplyBannerMode();
 
         // 5. Initialize notification listener
         _listener = new NotificationListener();
@@ -78,6 +79,7 @@ public partial class App : Application
         _trayManager = new TrayManager(_configManager);
         _trayManager.Initialize();
         _trayManager.EnabledChanged += OnEnabledChanged;
+        _trayManager.HistoryRequested += (_, _) => Dispatcher.BeginInvoke(ToggleHistoryWidget);
         _trayManager.ExitRequested += (_, _) => Shutdown();
 
         // 7. Start intercepting if enabled
@@ -111,6 +113,12 @@ public partial class App : Application
                 HideFloatingIcon();
                 _toastManager.SetFloatingIcon(null);
             }
+
+            ApplyBannerMode();
+            if (!config.ShowCustomToasts)
+            {
+                _toastManager.DismissAll();
+            }
         });
     }
 
@@ -130,11 +138,62 @@ public partial class App : Application
         }
     }
 
+    private void ApplyBannerMode()
+    {
+        if (!_configManager.Config.Enabled)
+        {
+            _suppressor.Restore();
+            return;
+        }
+
+        if (_configManager.Config.ShowCustomToasts)
+            _suppressor.Suppress();
+        else
+            _suppressor.Restore();
+    }
+
+    private void ToggleHistoryWidget()
+    {
+        var existing = Current.Windows.OfType<HistoryWidget>().FirstOrDefault();
+        if (existing != null)
+        {
+            existing.Close();
+            return;
+        }
+
+        var widget = new HistoryWidget(_historyManager, _configManager, _floatingIcon);
+        PositionHistoryWidget(widget);
+        widget.Show();
+        widget.Activate();
+    }
+
+    private void PositionHistoryWidget(HistoryWidget widget)
+    {
+        var workArea = SystemParameters.WorkArea;
+        if (_floatingIcon is { IsVisible: true })
+        {
+            if (_floatingIcon.Left > workArea.Width / 2)
+                widget.Left = _floatingIcon.Left - 400 - 10;
+            else
+                widget.Left = _floatingIcon.Left + _floatingIcon.Width + 10;
+            widget.Top = _floatingIcon.Top;
+        }
+        else
+        {
+            widget.Left = workArea.Right - 400 - 16;
+            widget.Top = workArea.Bottom - 420;
+        }
+
+        if (widget.Top < workArea.Top + 10)
+            widget.Top = workArea.Top + 10;
+        if (widget.Top + widget.MaxHeight > workArea.Bottom - 10)
+            widget.Top = workArea.Bottom - widget.MaxHeight - 10;
+    }
+
     /// <summary>Start listening for notifications and suppress native banners.</summary>
     private async Task StartInterception()
     {
-        // Suppress native toast banners first
-        _suppressor.Suppress();
+        ApplyBannerMode();
 
         // Retry loop: after a reboot, Windows notification subsystem may not
         // be ready immediately. We retry a few times with delays before giving up.
@@ -211,8 +270,11 @@ public partial class App : Application
         {
             try
             {
-                _toastManager.ShowToast(data);
-                ActionCenterManager.SendToActionCenter(data);
+                _historyManager.Add(data);
+                _floatingIcon?.AnimateNotificationIn();
+
+                if (_configManager.Config.ShowCustomToasts)
+                    _toastManager.ShowToast(data);
             }
             catch (Exception ex)
             {

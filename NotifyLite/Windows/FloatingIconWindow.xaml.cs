@@ -172,7 +172,7 @@ public partial class FloatingIconWindow : Window
 
         // Place to the left if icon is on right half of screen, else to the right
         if (Left > workArea.Width / 2)
-            _historyWidget.Left = Left - 320 - 10;
+            _historyWidget.Left = Left - 400 - 10;
         else
             _historyWidget.Left = Left + Width + 10;
 

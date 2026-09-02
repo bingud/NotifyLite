@@ -1,9 +1,11 @@
 using NotifyLite.Helpers;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Navigation;
 using WpfComboBox = System.Windows.Controls.ComboBox;
 using WpfComboBoxItem = System.Windows.Controls.ComboBoxItem;
 
@@ -34,6 +36,12 @@ public partial class SettingsWindow : Window
     private void CloseWin_Click(object sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    private void RepoLink_RequestNavigate(object sender, RequestNavigateEventArgs e)
+    {
+        Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        e.Handled = true;
     }
 
     private void LoadSettings()
@@ -72,7 +80,7 @@ public partial class SettingsWindow : Window
         var workArea = SystemParameters.WorkArea;
         PositionTipText.Text = $"Min: 0. Max X: {(int)workArea.Right}, Max Y: {(int)workArea.Bottom}";
 
-        // Floating Icon
+        CustomToastsCheck.IsChecked = c.ShowCustomToasts;
         FloatingIconCheck.IsChecked = c.ShowFloatingIcon;
 
         // Sound
@@ -106,7 +114,7 @@ public partial class SettingsWindow : Window
             {
                 Text = "No apps detected yet. Apps will appear here once notifications arrive.",
                 Foreground = new SolidColorBrush(Color.FromRgb(102, 102, 136)),
-                FontSize = 11,
+                FontSize = 16,
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 4, 0, 4)
             });
@@ -122,7 +130,7 @@ public partial class SettingsWindow : Window
             {
                 Text = appName,
                 Foreground = new SolidColorBrush(Color.FromRgb(204, 204, 221)),
-                FontSize = 11,
+                FontSize = 16,
                 VerticalAlignment = VerticalAlignment.Center,
                 Width = 130,
                 TextTrimming = TextTrimming.CharacterEllipsis
@@ -133,9 +141,9 @@ public partial class SettingsWindow : Window
             // Mode combo: Default / Custom / Muted
             var combo = new System.Windows.Controls.ComboBox
             {
-                Width = 90,
-                Height = 24,
-                FontSize = 10,
+                Width = 110,
+                Height = 36,
+                FontSize = 16,
                 Margin = new Thickness(6, 0, 6, 0),
                 VerticalAlignment = VerticalAlignment.Center,
                 Tag = appName
@@ -149,7 +157,7 @@ public partial class SettingsWindow : Window
             // Custom path textbox
             var pathBox = new TextBox
             {
-                FontSize = 10,
+                FontSize = 16,
                 Background = new SolidColorBrush(Color.FromRgb(42, 42, 62)),
                 Foreground = new SolidColorBrush(Color.FromRgb(224, 224, 240)),
                 BorderBrush = new SolidColorBrush(Color.FromRgb(58, 58, 78)),
@@ -164,9 +172,9 @@ public partial class SettingsWindow : Window
             var browseBtn = new Button
             {
                 Content = "...",
-                Width = 28,
-                Height = 24,
-                FontSize = 10,
+                Width = 36,
+                Height = 36,
+                FontSize = 16,
                 Visibility = Visibility.Collapsed,
                 VerticalAlignment = VerticalAlignment.Center,
                 Tag = pathBox
@@ -239,7 +247,7 @@ public partial class SettingsWindow : Window
             if (double.TryParse(PosYBox.Text, out var py)) c.PositionY = py;
         }
 
-        // Floating Icon
+        c.ShowCustomToasts = CustomToastsCheck.IsChecked == true;
         c.ShowFloatingIcon = FloatingIconCheck.IsChecked == true;
 
         // Sound
@@ -277,7 +285,7 @@ public partial class SettingsWindow : Window
     private void UpdateThemeColors(AppConfig c)
     {
         // Only auto-update if colors still match the OTHER theme's defaults
-        var darkDefaults = new { Title = "#E0E0F0", Body = "#AAAACC", Card = "#1E1E2E", Border = "#2A2A3E" };
+        var darkDefaults = new { Title = "#FFFFFF", Body = "#CCCCCC", Card = "#2B2B2B", Border = "#3D3D3D" };
         var lightDefaults = new { Title = "#1E1E28", Body = "#505064", Card = "#FFFFFF", Border = "#E6E6EB" };
 
         if (c.Theme == "Light")
@@ -305,15 +313,16 @@ public partial class SettingsWindow : Window
         {
             var c = _configManager.Config;
             c.Theme = "Dark"; c.FontFamily = "Segoe UI";
-            c.TitleFontSize = 12; c.BodyFontSize = 11;
-            c.TitleColor = "#E0E0F0"; c.BodyColor = "#AAAACC";
-            c.CardColor = "#1E1E2E"; c.CardBorderColor = "#2A2A3E";
-            c.AccentColor = "#6C63FF";
-            c.ToastWidth = 300; c.CornerRadius = 8;
+            c.TitleFontSize = 16; c.BodyFontSize = 16;
+            c.TitleColor = "#FFFFFF"; c.BodyColor = "#CCCCCC";
+            c.CardColor = "#2B2B2B"; c.CardBorderColor = "#3D3D3D";
+            c.AccentColor = "#808080";
+            c.ToastWidth = 300; c.CornerRadius = 2;
             c.CardOpacity = 1.0; c.TextOpacity = 1.0;
             c.DismissSeconds = 4; c.MaxVisibleToasts = 5;
             c.Position = "BottomRight"; c.PositionX = -1; c.PositionY = -1;
-            c.ShowFloatingIcon = true;
+            c.ShowFloatingIcon = false;
+            c.ShowCustomToasts = false;
             c.SoundEnabled = true; c.SoundFile = "default";
             c.AppSounds.Clear();
 
@@ -328,9 +337,9 @@ public partial class SettingsWindow : Window
     {
         if (_isLoading) return;
         var isDark = ThemeCombo.SelectedIndex == 0;
-        TitleColorBox.Text = isDark ? "#E0E0F0" : "#1E1E28";
-        BodyColorBox.Text = isDark ? "#AAAACC" : "#505064";
-        CardColorBox.Text = isDark ? "#1E1E2E" : "#FFFFFF";
+        TitleColorBox.Text = isDark ? "#FFFFFF" : "#1A1A1A";
+        BodyColorBox.Text = isDark ? "#CCCCCC" : "#555555";
+        CardColorBox.Text = isDark ? "#2B2B2B" : "#FFFFFF";
     }
 
     // --- Slider display handlers ---

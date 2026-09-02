@@ -9,7 +9,7 @@
   <Identity
     Name="NotifyLite"
     Publisher="CN=NotifyLiteDev"
-    Version="1.0.0.0"
+    Version="1.0.9.0"
     ProcessorArchitecture="x64" />
 
   <Properties>
@@ -33,7 +33,7 @@
       <uap:VisualElements
         DisplayName="NotifyLite"
         Description="Custom Windows Notification Interceptor"
-        BackgroundColor="#6C63FF"
+        BackgroundColor="#2B2B2B"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />

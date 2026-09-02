@@ -307,14 +307,6 @@ public class ToastManager
         if (sender is ToastWindow toast)
         {
             toast.ToastDismissed -= OnToastDismissed;
-
-            // Add to notification history
-            if (toast.NotificationData != null && _historyManager != null)
-            {
-                _historyManager.Add(toast.NotificationData);
-                _floatingIcon?.AnimateNotificationIn();
-            }
-
             lock (_lock) { _activeToasts.Remove(toast); }
             Application.Current?.Dispatcher.BeginInvoke(RepositionAllToasts);
         }
