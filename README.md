@@ -13,6 +13,8 @@ What is different:
 - Toggle to hide the floating notifications button
 - Toggle to use native windows notifications (only use for notification history)
 - Retain notification in history when dismissed
+- Toggle to show count of unread notifications
+- Setting for maximum number of notifications in history for a specific app (by app name or id)
 
 Windows 10/11 (64-bit), .NET 8.
 

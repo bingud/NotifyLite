@@ -35,8 +35,17 @@ public partial class FloatingIconWindow : Window
         _configManager = configManager;
         _historyManager = historyManager;
 
-        _historyManager.CountChanged += (_, _) => Dispatcher.BeginInvoke(UpdateBadge);
+        _historyManager.UnreadChanged += OnUnreadChanged;
+        _configManager.ConfigChanged += OnConfigChanged;
+        Closed += (_, _) =>
+        {
+            _historyManager.UnreadChanged -= OnUnreadChanged;
+            _configManager.ConfigChanged -= OnConfigChanged;
+        };
     }
+
+    private void OnUnreadChanged(object? sender, EventArgs e) => Dispatcher.BeginInvoke(UpdateBadge);
+    private void OnConfigChanged(object? sender, EventArgs e) => Dispatcher.BeginInvoke(UpdateBadge);
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
@@ -61,7 +70,9 @@ public partial class FloatingIconWindow : Window
     /// <summary>Update the badge count display.</summary>
     private void UpdateBadge()
     {
-        var count = _historyManager.Count;
+        var count = _configManager.Config.CountUnreadNotifications
+            ? _historyManager.UnreadCount
+            : 0;
         if (count > 0)
         {
             BadgeBorder.Visibility = System.Windows.Visibility.Visible;

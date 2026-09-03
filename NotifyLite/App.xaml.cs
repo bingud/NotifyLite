@@ -52,7 +52,7 @@ public partial class App : Application
         _toastManager = new ToastManager(_configManager);
 
         // 2b. Initialize notification history
-        _historyManager = new NotificationHistoryManager();
+        _historyManager = new NotificationHistoryManager(_configManager);
 
         // 2c. Initialize floating icon if enabled
         if (_configManager.Config.ShowFloatingIcon)
@@ -81,6 +81,8 @@ public partial class App : Application
         _trayManager.EnabledChanged += OnEnabledChanged;
         _trayManager.HistoryRequested += (_, _) => Dispatcher.BeginInvoke(ToggleHistoryWidget);
         _trayManager.ExitRequested += (_, _) => Shutdown();
+        _historyManager.UnreadChanged += (_, _) => Dispatcher.BeginInvoke(ApplyUnreadBadge);
+        ApplyUnreadBadge();
 
         // 7. Start intercepting if enabled
         if (_configManager.Config.Enabled)
@@ -115,11 +117,20 @@ public partial class App : Application
             }
 
             ApplyBannerMode();
+            ApplyUnreadBadge();
             if (!config.ShowCustomToasts)
             {
                 _toastManager.DismissAll();
             }
         });
+    }
+
+    private void ApplyUnreadBadge()
+    {
+        var count = _configManager.Config.CountUnreadNotifications
+            ? _historyManager.UnreadCount
+            : 0;
+        _trayManager.SetUnreadCount(count);
     }
 
     private void ShowFloatingIcon()
@@ -270,8 +281,8 @@ public partial class App : Application
         {
             try
             {
-                _historyManager.Add(data);
-                _floatingIcon?.AnimateNotificationIn();
+                if (_historyManager.Add(data))
+                    _floatingIcon?.AnimateNotificationIn();
 
                 if (_configManager.Config.ShowCustomToasts)
                     _toastManager.ShowToast(data);

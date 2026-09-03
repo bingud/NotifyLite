@@ -75,9 +75,11 @@
             <Border Grid.Row="0" Height="1" Background="#3D3D3D"
                     VerticalAlignment="Bottom" Margin="12,0"/>
 
-            <ScrollViewer Grid.Row="1"
+            <ScrollViewer x:Name="HistoryScroll"
+                          Grid.Row="1"
                           VerticalScrollBarVisibility="Auto"
                           Margin="4,4,4,8"
+                          ScrollChanged="HistoryScroll_ScrollChanged"
                           PreviewMouseWheel="UIElement_OnPreviewMouseWheel">
                 <StackPanel x:Name="NotificationList"/>
             </ScrollViewer>

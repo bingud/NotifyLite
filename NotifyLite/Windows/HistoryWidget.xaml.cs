@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace NotifyLite.Windows;
 
@@ -109,6 +110,49 @@ public partial class HistoryWidget : Window
             var card = CreateNotificationCard(notif);
             NotificationList.Children.Add(card);
         }
+
+        Dispatcher.BeginInvoke(MarkVisibleAsRead, DispatcherPriority.Loaded);
+    }
+
+    private void HistoryScroll_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (e.VerticalChange != 0 || e.ViewportHeightChange != 0 || e.ExtentHeightChange != 0)
+            MarkVisibleAsRead();
+    }
+
+    /// <summary>Count cards actually on screen as read and drop them from the tray badge.</summary>
+    private void MarkVisibleAsRead()
+    {
+        if (_isClosing || HistoryScroll == null || NotificationList.Children.Count == 0)
+            return;
+
+        var viewport = HistoryScroll.ViewportHeight;
+        if (viewport <= 0)
+            viewport = HistoryScroll.ActualHeight;
+        if (viewport <= 0 || double.IsNaN(viewport) || double.IsInfinity(viewport))
+            return;
+
+        var toMark = new List<InterceptedNotification>();
+        foreach (var child in NotificationList.Children.OfType<Border>())
+        {
+            if (child.Tag is not InterceptedNotification notif || !notif.IsUnread)
+                continue;
+            if (child.ActualHeight <= 0)
+                continue;
+
+            GeneralTransform transform;
+            try { transform = child.TransformToAncestor(HistoryScroll); }
+            catch (InvalidOperationException) { continue; }
+
+            var top = transform.Transform(new System.Windows.Point(0, 0)).Y;
+            var bottom = top + child.ActualHeight;
+            var visible = Math.Min(bottom, viewport) - Math.Max(top, 0.0);
+            if (visible >= Math.Min(child.ActualHeight * 0.4, 20))
+                toMark.Add(notif);
+        }
+
+        if (toMark.Count > 0)
+            _historyManager.MarkRead(toMark);
     }
 
     private Border CreateNotificationCard(InterceptedNotification notif)
@@ -120,7 +164,10 @@ public partial class HistoryWidget : Window
             Margin = new Thickness(8, 3, 8, 3),
             Padding = new Thickness(10, 8, 8, 8),
             Cursor = Cursors.Hand,
-            Tag = notif
+            Tag = notif,
+            ToolTip = string.IsNullOrEmpty(notif.AppUserModelId)
+                ? notif.AppName
+                : $"{notif.AppName}\n{notif.AppUserModelId}"
         };
 
         card.MouseEnter += (s, _) =>
@@ -250,6 +297,7 @@ public partial class HistoryWidget : Window
     private void ClearAll_Click(object sender, RoutedEventArgs e)
     {
         _historyManager.ClearAll();
+        TryClose();
     }
 
     private void UIElement_OnPreviewMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)

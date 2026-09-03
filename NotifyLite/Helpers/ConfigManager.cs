@@ -37,6 +37,8 @@ public class ConfigManager
                 Config = JsonSerializer.Deserialize<AppConfig>(json, JsonOptions) ?? new AppConfig();
                 if (Config.TitleFontSize < 16) Config.TitleFontSize = 16;
                 if (Config.BodyFontSize < 16) Config.BodyFontSize = 16;
+                if (Config.HistoryMaxItems < 1) Config.HistoryMaxItems = 50;
+                Config.HistoryFilters ??= new List<HistoryAppLimit>();
             }
             else
             {
@@ -122,6 +124,14 @@ public class AppConfig
     /// </summary>
     public bool ShowCustomToasts { get; set; } = false;
 
+    // --- History ---
+    /// <summary>When true, unread notifications are counted and shown on the tray (and floating) icon.</summary>
+    public bool CountUnreadNotifications { get; set; } = true;
+    /// <summary>Global cap on stored history items. Per-app filters can be lower.</summary>
+    public int HistoryMaxItems { get; set; } = 50;
+    /// <summary>Per-app history caps. AppName matches display name or App User Model ID. MaxCount 0 = do not store.</summary>
+    public List<HistoryAppLimit> HistoryFilters { get; set; } = new();
+
     // --- Tracked apps (auto-populated as notifications arrive) ---
     public List<string> KnownApps { get; set; } = new();
 
@@ -130,4 +140,14 @@ public class AppConfig
     public double FontSize { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public double Opacity { get; set; }
+}
+
+/// <summary>Limits how many notifications from one app are kept in history.</summary>
+public class HistoryAppLimit
+{
+    /// <summary>App display name or App User Model ID to match (case-insensitive).</summary>
+    public string AppName { get; set; } = string.Empty;
+
+    /// <summary>Max items of this app to keep. 0 = hide from history entirely.</summary>
+    public int MaxCount { get; set; }
 }

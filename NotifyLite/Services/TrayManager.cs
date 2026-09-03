@@ -1,6 +1,9 @@
 using Hardcodet.Wpf.TaskbarNotification;
 using NotifyLite.Helpers;
 using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Text;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -14,6 +17,9 @@ public class TrayManager : IDisposable
 {
     private TaskbarIcon? _trayIcon;
     private readonly ConfigManager _configManager;
+    private int _unreadCount;
+    private string _status = "Custom Notifications";
+    private IntPtr _iconHandle;
 
     /// <summary>Fired when the user toggles notification interception on/off.</summary>
     public event EventHandler<bool>? EnabledChanged;
@@ -40,10 +46,10 @@ public class TrayManager : IDisposable
 
         _trayIcon = new TaskbarIcon
         {
-            Icon = CreateDefaultIcon(),
             ToolTipText = "NotifyLite — Custom Notifications",
             ContextMenu = contextMenu
         };
+        ApplyIconAndTooltip();
         _trayIcon.TrayLeftMouseUp += (_, _) => HistoryRequested?.Invoke(this, EventArgs.Empty);
     }
 
@@ -163,47 +169,105 @@ public class TrayManager : IDisposable
         return menu;
     }
 
-    /// <summary>
-    /// Create a simple programmatic icon (avoids dependency on an .ico file).
-    /// Draws an "N" on a dark gray square.
-    /// </summary>
-    private static Icon CreateDefaultIcon()
+    /// <summary>Draw the tray icon, overlaying an unread count when greater than zero.</summary>
+    private Icon CreateIcon(int unread)
     {
         using var bitmap = new Bitmap(32, 32);
         using var g = Graphics.FromImage(bitmap);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+        g.Clear(System.Drawing.Color.Transparent);
 
-        // Dark gray square background
         using var brush = new SolidBrush(ColorTranslator.FromHtml("#2B2B2B"));
-        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
         g.FillRectangle(brush, 2, 2, 28, 28);
         using var borderPen = new Pen(ColorTranslator.FromHtml("#3D3D3D"), 1);
         g.DrawRectangle(borderPen, 2, 2, 28, 28);
 
-        // Draw "N" letter
-        using var font = new Font("Segoe UI", 16, System.Drawing.FontStyle.Bold);
-        using var textBrush = new SolidBrush(System.Drawing.Color.White);
         var format = new StringFormat
         {
             Alignment = StringAlignment.Center,
             LineAlignment = StringAlignment.Center
         };
-        g.DrawString("N", font, textBrush, new RectangleF(0, 0, 32, 32), format);
+        using var textBrush = new SolidBrush(System.Drawing.Color.White);
 
-        return Icon.FromHandle(bitmap.GetHicon());
+        if (unread <= 0)
+        {
+            using var font = new Font("Segoe UI", 16, System.Drawing.FontStyle.Bold);
+            g.DrawString("N", font, textBrush, new RectangleF(0, 0, 32, 32), format);
+        }
+        else
+        {
+            var label = unread > 99 ? "99" : unread.ToString();
+            using var badgeBrush = new SolidBrush(System.Drawing.Color.FromArgb(200, 40, 40));
+            g.FillEllipse(badgeBrush, 3, 3, 26, 26);
+
+            var fontSize = label.Length >= 2 ? 13f : 16f;
+            using var font = new Font("Segoe UI", fontSize, System.Drawing.FontStyle.Bold);
+            g.DrawString(label, font, textBrush, new RectangleF(0, 1, 32, 32), format);
+        }
+
+        var handle = bitmap.GetHicon();
+        return Icon.FromHandle(handle);
+    }
+
+    private void ApplyIconAndTooltip()
+    {
+        if (_trayIcon == null) return;
+
+        var icon = CreateIcon(_unreadCount);
+        var newHandle = icon.Handle;
+        _trayIcon.Icon = icon;
+
+        if (_iconHandle != IntPtr.Zero && _iconHandle != newHandle)
+            DestroyIcon(_iconHandle);
+        _iconHandle = newHandle;
+
+        ApplyTooltip();
+    }
+
+    private void ApplyTooltip()
+    {
+        if (_trayIcon == null) return;
+        var unread = _unreadCount > 0 ? $" · {_unreadCount} unread" : "";
+        _trayIcon.ToolTipText = $"NotifyLite — {_status}{unread}";
+    }
+
+    /// <summary>Show the unread count on the tray icon. 0 restores the default "N".</summary>
+    public void SetUnreadCount(int count)
+    {
+        var next = Math.Max(0, count);
+        if (next == _unreadCount && _trayIcon?.Icon != null)
+        {
+            ApplyTooltip();
+            return;
+        }
+        _unreadCount = next;
+        ApplyIconAndTooltip();
     }
 
     /// <summary>Update the tooltip to show current status.</summary>
     public void UpdateTooltip(string status)
     {
-        if (_trayIcon != null)
-        {
-            _trayIcon.ToolTipText = $"NotifyLite — {status}";
-        }
+        _status = status;
+        ApplyTooltip();
     }
 
     public void Dispose()
     {
-        _trayIcon?.Dispose();
+        if (_trayIcon != null)
+        {
+            _trayIcon.Icon = null;
+            _trayIcon.Dispose();
+            _trayIcon = null;
+        }
+        if (_iconHandle != IntPtr.Zero)
+        {
+            DestroyIcon(_iconHandle);
+            _iconHandle = IntPtr.Zero;
+        }
         GC.SuppressFinalize(this);
     }
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    private static extern bool DestroyIcon(IntPtr handle);
 }

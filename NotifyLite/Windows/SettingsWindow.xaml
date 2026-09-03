@@ -128,7 +128,7 @@
                 <StackPanel>
 
                     <!-- === BANNERS === -->
-                    <TextBlock Text="Notifications" Style="{StaticResource SectionHeader}" Margin="0,0,0,6"/>
+                    <TextBlock Text="💬  Notifications" Style="{StaticResource SectionHeader}" Margin="0,0,0,6"/>
                     <Border Background="#2B2B2B" CornerRadius="3" Padding="22,16" Margin="0,0,0,12">
                         <StackPanel>
                             <DockPanel>
@@ -138,11 +138,18 @@
                             </DockPanel>
                             <TextBlock Text="Off = Windows native banners. History is still recorded. Left-click the tray icon for history."
                                        FontSize="16" Foreground="#888888" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                            <DockPanel Margin="0,12,0,0">
+                                <TextBlock Text="Count unread notifications" Style="{StaticResource Label}" DockPanel.Dock="Left"/>
+                                <ToggleButton x:Name="CountUnreadCheck" Style="{StaticResource FancyToggle}" VerticalAlignment="Center"
+                                              HorizontalAlignment="Right" DockPanel.Dock="Right"/>
+                            </DockPanel>
+                            <TextBlock Text="On = show the unread number on the tray icon. Opening history marks visible items as read."
+                                       FontSize="16" Foreground="#888888" Margin="0,4,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
 
                     <!-- === FLOATING ICON === -->
-                    <TextBlock Text="🫧  Floating Icon" Style="{StaticResource SectionHeader}" Margin="0,0,0,6"/>
+                    <TextBlock Text="📌  Floating Icon" Style="{StaticResource SectionHeader}" Margin="0,0,0,6"/>
                     <Border Background="#2B2B2B" CornerRadius="3" Padding="22,16" Margin="0,0,0,12">
                         <StackPanel>
                             <DockPanel>
@@ -381,6 +388,30 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- === HISTORY === -->
+                    <TextBlock Text="📋  History" Style="{StaticResource SectionHeader}"/>
+                    <Border Background="#2B2B2B" CornerRadius="3" Padding="22,16" Margin="0,0,0,12">
+                        <StackPanel>
+                            <DockPanel>
+                                <TextBlock Text="Max stored notifications" Style="{StaticResource Label}" DockPanel.Dock="Left"/>
+                                <TextBlock x:Name="HistoryMaxLabel" Style="{StaticResource ValueLabel}" DockPanel.Dock="Right"/>
+                            </DockPanel>
+                            <Slider x:Name="HistoryMaxSlider" Minimum="1" Maximum="200" TickFrequency="1"
+                                    IsSnapToTickEnabled="True" ValueChanged="HistoryMaxSlider_Changed"/>
+
+                            <TextBlock Text="Per-app history limits" Style="{StaticResource Label}" Margin="0,8,0,2"/>
+                            <TextBlock Text="Cap how many notifications an app keeps in history. Use the app name from toasts, or an App ID (AUMID). Max 0 hides that app from history entirely."
+                                       FontSize="16" Foreground="#888888" Margin="0,0,0,8" TextWrapping="Wrap"/>
+                            <Border Background="#252525" CornerRadius="2" Padding="8,4" MaxHeight="220">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="UIElement_OnPreviewMouseWheel">
+                                    <StackPanel x:Name="HistoryFiltersPanel"/>
+                                </ScrollViewer>
+                            </Border>
+                            <Button Content="Add filter" Width="120" Height="36" HorizontalAlignment="Left"
+                                    Margin="0,8,0,0" Click="AddHistoryFilter_Click"/>
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Text="Credits" Style="{StaticResource SectionHeader}" Margin="0,8,0,6"/>
                     <StackPanel Margin="0,0,0,8">
                         <TextBlock FontSize="16" Foreground="#888888" TextWrapping="Wrap" Margin="0,0,0,6">
@@ -393,7 +424,7 @@
                         </TextBlock>
                         <TextBlock FontSize="16" Foreground="#888888" TextWrapping="Wrap">
                             <Run Text="This fork: "/>
-                            <Hyperlink NavigateUri="https://github.com/github/NotifyLite"
+                            <Hyperlink NavigateUri="https://github.com/bingud/NotifyLite"
                                        RequestNavigate="RepoLink_RequestNavigate"
                                        Foreground="#A0A0A0">
                                 https://github.com/bingud/NotifyLite

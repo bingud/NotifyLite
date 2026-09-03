@@ -23,4 +23,7 @@ public class InterceptedNotification
 
     /// <summary>The Application User Model ID — used to launch the source app on click.</summary>
     public string? AppUserModelId { get; set; }
+
+    /// <summary>True until the notification has been visible in the history popup.</summary>
+    public bool IsUnread { get; set; } = true;
 }

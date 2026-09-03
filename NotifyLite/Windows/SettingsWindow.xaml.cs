@@ -18,6 +18,7 @@ public partial class SettingsWindow : Window
 
     // Per-app sound data: appName -> (comboBox for mode, textBox for custom path)
     private readonly Dictionary<string, (System.Windows.Controls.ComboBox Combo, TextBox PathBox)> _appSoundControls = new();
+    private readonly List<(TextBox AppBox, TextBox MaxBox)> _historyFilterControls = new();
 
     public SettingsWindow(ConfigManager configManager)
     {
@@ -81,7 +82,11 @@ public partial class SettingsWindow : Window
         PositionTipText.Text = $"Min: 0. Max X: {(int)workArea.Right}, Max Y: {(int)workArea.Bottom}";
 
         CustomToastsCheck.IsChecked = c.ShowCustomToasts;
+        CountUnreadCheck.IsChecked = c.CountUnreadNotifications;
         FloatingIconCheck.IsChecked = c.ShowFloatingIcon;
+
+        HistoryMaxSlider.Value = c.HistoryMaxItems < 1 ? 50 : c.HistoryMaxItems;
+        BuildHistoryFiltersList();
 
         // Sound
         SoundEnabledCheck.IsChecked = c.SoundEnabled;
@@ -215,6 +220,133 @@ public partial class SettingsWindow : Window
         }
     }
 
+    private void BuildHistoryFiltersList()
+    {
+        HistoryFiltersPanel.Children.Clear();
+        _historyFilterControls.Clear();
+
+        var filters = _configManager.Config.HistoryFilters;
+        if (filters.Count == 0)
+        {
+            ShowHistoryFiltersEmptyMessage();
+            return;
+        }
+
+        foreach (var filter in filters)
+            AddHistoryFilterRow(filter.AppName, filter.MaxCount);
+    }
+
+    private void AddHistoryFilter_Click(object sender, RoutedEventArgs e)
+    {
+        if (_historyFilterControls.Count == 0)
+            HistoryFiltersPanel.Children.Clear();
+        AddHistoryFilterRow("", 0);
+    }
+
+    private void AddHistoryFilterRow(string appName, int maxCount)
+    {
+        var knownApps = _configManager.Config.KnownApps.Distinct().OrderBy(a => a).ToList();
+        var row = new DockPanel { Margin = new Thickness(0, 3, 0, 3) };
+
+        var removeBtn = new Button
+        {
+            Content = "✕",
+            Width = 36,
+            Height = 36,
+            FontSize = 16,
+            VerticalAlignment = VerticalAlignment.Center,
+            ToolTip = "Remove filter"
+        };
+        DockPanel.SetDock(removeBtn, Dock.Right);
+        row.Children.Add(removeBtn);
+
+        var maxBox = new TextBox
+        {
+            Text = maxCount.ToString(),
+            Width = 56,
+            Height = 36,
+            FontSize = 16,
+            Margin = new Thickness(6, 0, 6, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            Background = new SolidColorBrush(Color.FromRgb(51, 51, 51)),
+            Foreground = new SolidColorBrush(Color.FromRgb(255, 255, 255)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(61, 61, 61)),
+            Padding = new Thickness(4, 2, 4, 2),
+            ToolTip = "Max items. 0 = hide from history"
+        };
+        DockPanel.SetDock(maxBox, Dock.Right);
+        row.Children.Add(maxBox);
+
+        var maxLabel = new TextBlock
+        {
+            Text = "Max",
+            Foreground = new SolidColorBrush(Color.FromRgb(153, 153, 153)),
+            FontSize = 16,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(8, 0, 0, 0)
+        };
+        DockPanel.SetDock(maxLabel, Dock.Right);
+        row.Children.Add(maxLabel);
+
+        var appBox = new TextBox
+        {
+            Text = appName,
+            FontSize = 16,
+            Height = 36,
+            VerticalAlignment = VerticalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            Background = new SolidColorBrush(Color.FromRgb(51, 51, 51)),
+            Foreground = new SolidColorBrush(Color.FromRgb(255, 255, 255)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(61, 61, 61)),
+            Padding = new Thickness(4, 2, 4, 2),
+            ToolTip = knownApps.Count > 0
+                ? "App name or App ID. Known: " + string.Join(", ", knownApps)
+                : "App name or App ID (AUMID)"
+        };
+        row.Children.Add(appBox);
+
+        var controls = (appBox, maxBox);
+        _historyFilterControls.Add(controls);
+        removeBtn.Click += (_, _) =>
+        {
+            HistoryFiltersPanel.Children.Remove(row);
+            _historyFilterControls.Remove(controls);
+            if (_historyFilterControls.Count == 0)
+                ShowHistoryFiltersEmptyMessage();
+        };
+
+        HistoryFiltersPanel.Children.Add(row);
+    }
+
+    private void ShowHistoryFiltersEmptyMessage()
+    {
+        HistoryFiltersPanel.Children.Clear();
+        HistoryFiltersPanel.Children.Add(new TextBlock
+        {
+            Text = "No filters yet. Add one to cap or hide an app's history.",
+            Foreground = new SolidColorBrush(Color.FromRgb(102, 102, 136)),
+            FontSize = 16,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 4, 0, 4)
+        });
+    }
+
+    private List<HistoryAppLimit> CollectHistoryFilters()
+    {
+        var result = new List<HistoryAppLimit>();
+        foreach (var (appBox, maxBox) in _historyFilterControls)
+        {
+            var name = appBox.Text?.Trim() ?? "";
+            if (string.IsNullOrEmpty(name)) continue;
+            if (!int.TryParse(maxBox.Text, out var max))
+                max = 0;
+            max = Math.Clamp(max, 0, 999);
+            result.Add(new HistoryAppLimit { AppName = name, MaxCount = max });
+        }
+        return result;
+    }
+
     private async void Save_Click(object sender, RoutedEventArgs e)
     {
         var c = _configManager.Config;
@@ -248,7 +380,10 @@ public partial class SettingsWindow : Window
         }
 
         c.ShowCustomToasts = CustomToastsCheck.IsChecked == true;
+        c.CountUnreadNotifications = CountUnreadCheck.IsChecked == true;
         c.ShowFloatingIcon = FloatingIconCheck.IsChecked == true;
+        c.HistoryMaxItems = (int)HistoryMaxSlider.Value;
+        c.HistoryFilters = CollectHistoryFilters();
 
         // Sound
         c.SoundEnabled = SoundEnabledCheck.IsChecked == true;
@@ -323,6 +458,10 @@ public partial class SettingsWindow : Window
             c.Position = "BottomRight"; c.PositionX = -1; c.PositionY = -1;
             c.ShowFloatingIcon = false;
             c.ShowCustomToasts = false;
+            c.CountUnreadNotifications = true;
+            c.HistoryMaxItems = 50;
+            c.HistoryFilters ??= new();
+            c.HistoryFilters.Clear();
             c.SoundEnabled = true; c.SoundFile = "default";
             c.AppSounds.Clear();
 
@@ -366,6 +505,9 @@ public partial class SettingsWindow : Window
 
     private void MaxToastsSlider_Changed(object s, RoutedPropertyChangedEventArgs<double> e)
     { if (MaxToastsLabel != null) MaxToastsLabel.Text = $"{(int)e.NewValue}"; }
+
+    private void HistoryMaxSlider_Changed(object s, RoutedPropertyChangedEventArgs<double> e)
+    { if (HistoryMaxLabel != null) HistoryMaxLabel.Text = $"{(int)e.NewValue}"; }
 
     private void PositionCombo_Changed(object sender, SelectionChangedEventArgs e)
     {
