@@ -104,19 +104,21 @@ public class TrayManager : IDisposable
         };
         menu.Items.Add(soundItem);
 
-        // Auto-start toggle
         var startupItem = new MenuItem
         {
-            Header = StartupManager.IsStartupEnabled() ? "🔄 Auto-start: ON" : "🔄 Auto-start: OFF",
+            Header = "🔄 Auto-start: …",
             Tag = "startup"
         };
-        startupItem.Click += (s, _) =>
+        _ = RefreshStartupHeaderAsync(startupItem);
+        startupItem.Click += async (s, _) =>
         {
-            var currentlyEnabled = StartupManager.IsStartupEnabled();
-            StartupManager.SetStartup(!currentlyEnabled);
-            _configManager.Config.AutoStart = !currentlyEnabled;
-            ((MenuItem)s!).Header = !currentlyEnabled ? "🔄 Auto-start: ON" : "🔄 Auto-start: OFF";
+            var currentlyEnabled = await StartupManager.IsEnabledAsync();
+            var result = await StartupManager.SetEnabledAsync(!currentlyEnabled);
+            ((MenuItem)s!).Header = result.Enabled ? "🔄 Auto-start: ON" : "🔄 Auto-start: OFF";
+            _configManager.Config.AutoStart = result.Enabled;
             _configManager.Save();
+            if (!string.IsNullOrEmpty(result.Error))
+                MessageBox.Show(result.Error, "NotifyLite", MessageBoxButton.OK, MessageBoxImage.Information);
         };
         menu.Items.Add(startupItem);
 
@@ -167,6 +169,15 @@ public class TrayManager : IDisposable
         menu.Items.Add(exitItem);
 
         return menu;
+    }
+
+    private static async Task RefreshStartupHeaderAsync(MenuItem item)
+    {
+        var enabled = await StartupManager.IsEnabledAsync();
+        item.Dispatcher.Invoke(() =>
+        {
+            item.Header = enabled ? "🔄 Auto-start: ON" : "🔄 Auto-start: OFF";
+        });
     }
 
     /// <summary>Draw the tray icon, overlaying an unread count when greater than zero.</summary>

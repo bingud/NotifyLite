@@ -75,6 +75,8 @@ public partial class App : Application
         _listener = new NotificationListener();
         _listener.NotificationReceived += OnNotificationReceived;
 
+        StartupManager.ClearLegacyRunKey();
+
         // 6. Initialize tray icon with menu
         _trayManager = new TrayManager(_configManager);
         _trayManager.Initialize();
